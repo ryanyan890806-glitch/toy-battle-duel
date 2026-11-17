@@ -68,7 +68,9 @@
 #album-toggle[aria-expanded=true] {background:#795b32}
 .album-panel {position:absolute; z-index:110; top:calc(100% + 6px); right:0; width:min(400px,100%); box-sizing:border-box; padding:8px; border:1px solid #ad8758; border-radius:12px; background:#312c26; color:#fff0c6; box-shadow:0 5px 24px #0008}
 .album-panel[hidden] {display:none}
-.album-panel iframe {display:block; width:100%; height:clamp(150px,55vh,395px); border:0; border-radius:8px; background:#252525}
+.album-panel iframe {display:block; width:100%; aspect-ratio:16/9; height:auto; border:0; border-radius:8px; background:#252525}
+.album-picker {display:grid; gap:6px; margin:2px 0 9px; font-size:14px; font-weight:700}
+.album-picker select {width:100%; box-sizing:border-box; padding:7px 9px; background:#4c4033; color:#fff1d6; border:1px solid #ad8758; border-radius:6px; font:inherit}
 .album-actions {display:flex; align-items:center; justify-content:flex-end; flex-wrap:wrap; gap:8px; margin-top:8px}
 .album-actions a {color:#ffda9a; font-size:13px; margin-right:auto}
 
@@ -95,8 +97,22 @@
 @media(max-width:430px){.room-seat{padding:10px 8px}.room-map-area{gap:12px}.room-controls button{padding:10px 12px}}
 
 </style></head><body><div class="wrap"><header><div><h1>⚔️ <span>TOY</span> BATTLE</h1><small>公网双人对战</small></div><div class="album-tools"><button type="button" id="album-toggle" aria-expanded="false" aria-controls="album-panel">♫ 八度空间</button><span class="pill" id="connection">正在连接…</span></div><section id="album-panel" class="album-panel" aria-label="周杰伦《八度空间》播放器" hidden>
+<label class="album-picker" for="album-source">周杰伦 · 八度空间
+<select id="album-source"><option value="album">B站 · 全专辑连播（43:12）</option><optgroup label="腾讯视频 · 单曲 MV">
+<option value="c0013cukfog">01　半兽人</option>
+<option value="a00303mp2yf">02　半岛铁盒</option>
+<option value="m00131mh3z2">03　暗号</option>
+<option value="o0013etzwjw">04　龙拳</option>
+<option value="S0010OgxWKT">05　火车叨位去</option>
+<option value="k0010RfNW0v">06　分裂</option>
+<option value="n0010BCw40a">07　爷爷泡的茶</option>
+<option value="z0011e4bpl0">08　回到过去</option>
+<option value="C0010daEIxC">09　米兰的小铁匠</option>
+<option value="n0011yeemua">10　最后的战役</option>
+</optgroup></select></label>
 <div id="album-embed"></div>
-<div class="album-actions"><a href="https://music.apple.com/cn/album/%E5%85%AB%E5%BA%A6%E7%A9%BA%E9%96%93/536161722" rel="noopener noreferrer" target="_blank">在 Apple Music 打开</a>
+<p style="font-size:12px;margin:6px 0;color:#e6d1b5">连播加载失败时，可在上方改选单曲。</p>
+<div class="album-actions"><a href="https://y.qq.com/n/ryqq_v2/albumDetail/004MGitN0zEHpb" rel="noopener noreferrer" target="_blank">QQ 音乐原版专辑 ↗</a>
 <button type="button" id="album-stop">停止播放</button><button type="button" id="album-fold">收起</button></div>
 </section></header><div id="app"></div><dialog id="retreat-dialog" class="restart-dialog retreat-dialog" aria-labelledby="retreat-title"><h2 id="retreat-title">选择要回收的棋子</h2><p>可选择叠放中的己方棋子。</p><div id="retreat-list" class="retreat-list"></div><div class="restart-dialog-actions"><button type="button" onclick="document.querySelector('#retreat-dialog').close()">取消</button></div></dialog><dialog id="restart-dialog" class="restart-dialog" aria-labelledby="restart-title"><h2 id="restart-title">结束这局并返回房间？</h2><p>当前对局将结束，双方可在房间重新选图、准备。</p><div class="restart-dialog-actions"><button type="button" onclick="document.querySelector('#restart-dialog').close()">取消</button><button type="button" class="primary" onclick="confirmRestart()">返回房间</button></div></dialog><dialog id="map-confirm" class="restart-dialog"><h2>切换棋盘？</h2><p id="map-confirm-text"></p><div class="restart-dialog-actions"><button onclick="document.querySelector('#map-confirm').close()">取消</button><button class="primary" onclick="confirmMap()">确认切换</button></div></dialog><dialog id="map-dialog" class="map-browser"><h2>选择棋盘</h2><p>房主可更换地图并返回准备房间。</p><div class="map-grid" id="map-grid"></div><p><button type="button" onclick="document.querySelector('#map-dialog').close()">关闭</button></p></dialog><dialog id="invite-dialog" class="restart-dialog"><h2>邀请朋友</h2><p>把蓝方链接发给朋友。红方请在同一浏览器保留页面，刷新可以恢复本局。</p><label>红方<input id="invite-red" readonly style="width:100%"></label><label>蓝方<input id="invite-blue" readonly style="width:100%"></label><div class="restart-dialog-actions"><button onclick="document.querySelector('#invite-dialog').close()">关闭</button></div></dialog><div id="stack-preview" class="stack-preview" role="tooltip" hidden onmouseenter="keepStackPreview()" onmouseleave="hideStackSoon()"></div><footer>非官方个人学习模拟版 · 兵种图片来源于 Ludex / Toy Battle，版权属于 Repos Production。棋盘落点依据图片及参考资料校准，仍需实战核验。</footer></div><script>
 const ART={"troop-blue-capn":"./board-assets/e84e522578f0bfa9.webp","troop-blue-hook":"./board-assets/71e8258a61b09b90.webp","troop-blue-jumbo":"./board-assets/4c281d818c439149.webp","troop-blue-kwak":"./board-assets/e7f3571ca24b7ffd.webp","troop-blue-roxy":"./board-assets/4fa31ea3c2ba3700.webp","troop-blue-skully":"./board-assets/5713bccc449a27fc.webp","troop-blue-star":"./board-assets/91606d3e5d8a5647.webp","troop-blue-xb42":"./board-assets/d53cdfcb49e09226.webp","troop-red-capn":"./board-assets/5c7bb6633f23a426.webp","troop-red-hook":"./board-assets/c1b8168286dfa137.webp","troop-red-jumbo":"./board-assets/ce805f963cec9917.webp","troop-red-kwak":"./board-assets/e604bf1dc65e373b.webp","troop-red-roxy":"./board-assets/42305579ec731262.webp","troop-red-skully":"./board-assets/2a3250f8a5814651.webp","troop-red-star":"./board-assets/6bef0784615ee111.webp","troop-red-xb42":"./board-assets/48b48a73838e2dd0.webp"};function piece(type,owner){const key=`troop-${owner===0?"red":"blue"}-${type.toLowerCase()}`;return ART[key]||"";}
@@ -261,15 +277,29 @@ function render(){hideStackNow();if(state?.stage==='lobby'){renderRoomLobby();re
 const albumToggle = document.getElementById('album-toggle');
 const albumPanel = document.getElementById('album-panel');
 const albumEmbed = document.getElementById('album-embed');
-function showAlbum(open) {
-  if (open && !albumEmbed.firstElementChild) {
-    const frame = document.createElement('iframe');
-    frame.title = '周杰伦《八度空间》· Apple Music';
-    frame.allow = 'autoplay; encrypted-media; fullscreen';
-    frame.referrerPolicy = 'strict-origin';
-    frame.src = 'https://embed.music.apple.com/cn/album/%E5%85%AB%E5%BA%A6%E7%A9%BA%E9%96%93/536161722?l=zh-Hans';
-    albumEmbed.append(frame);
+const albumSource = document.getElementById('album-source');
+function loadAlbumSelection() {
+  const continuous = albumSource.value === 'album';
+  const frame = document.createElement('iframe');
+  frame.title = continuous ? '周杰伦《八度空间》· B站全专辑连播'
+    : '腾讯视频 · ' + albumSource.selectedOptions[0].textContent;
+  frame.allow = 'autoplay; encrypted-media; fullscreen; picture-in-picture';
+  frame.allowFullscreen = true;
+  frame.referrerPolicy = 'strict-origin';
+  const url = new URL(continuous ? 'https://player.bilibili.com/player.html'
+    : 'https://v.qq.com/txp/iframe/player.html');
+  if (continuous) {
+    url.searchParams.set('bvid','BV1gU4y1C73A');
+  } else {
+    url.searchParams.set('vid',albumSource.value);
   }
+  url.searchParams.set('autoplay','0');
+  frame.src = url.href;
+  albumEmbed.replaceChildren(frame);
+}
+albumSource.addEventListener('change', loadAlbumSelection);
+function showAlbum(open) {
+  if (open && !albumEmbed.firstElementChild) loadAlbumSelection();
   albumPanel.hidden = !open;
   albumToggle.setAttribute('aria-expanded', String(open));
   if (!open) albumToggle.focus({preventScroll:true});
