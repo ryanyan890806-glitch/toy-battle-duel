@@ -22,7 +22,9 @@ export async function makeInvites() {
 }
 
 export class Room {
-  constructor(onState,onStatus,onRadio=()=>{}) {
+  constructor(onState,onStatus,onRadio=()=>{},onChat=()=>{}) {
+    this.onChat=onChat;
+    this.chatRevision=-1;
     this.onState=onState;
     this.onStatus=onStatus;
     this.onRadio=onRadio;
@@ -68,8 +70,10 @@ export class Room {
         record.rev++;
       }
       if (!record.radio) record.radio={station:'chillsynth',revision:0,changedBy:null};
+      if (!record.chat) record.chat={revision:0,messages:[]};
       this.persist(record);
       this.acceptRadio(record.radio);
+      this.acceptChat(record.chat);
       this.showHost();
     }
     this.status();
@@ -132,9 +136,53 @@ export class Room {
     const wire=new Uint8Array(12+enc.byteLength);wire.set(iv);wire.set(new Uint8Array(enc),12);
     for(const client of this.clients)if(client.connected)client.publish(channel,wire,{qos:0,retain:false});
   }
-  hello(){this.transmit({kind:'hello',session:this.session,rev:this.rev,radioRevision:this.radioRevision,instance:this.instance||null}).catch(()=>{});}
+  hello(){this.transmit({kind:'hello',session:this.session,rev:this.rev,radioRevision:this.radioRevision,chatRevision:this.chatRevision,instance:this.instance||null}).catch(()=>{});}
   snapshot(extra={}) {
-    return this.transmit({kind:'state',instance:this.record.instance,rev:this.rev,receipt:this.record.receipt,data:this.view(1),radio:this.record.radio,...extra});
+    return this.transmit({kind:'state',instance:this.record.instance,rev:this.rev,receipt:this.record.receipt,data:this.view(1),radio:this.record.radio,chat:this.record.chat,...extra});
+  }
+  acceptChat(chat) {
+    if (!chat || !Number.isSafeInteger(chat.revision) || chat.revision<=this.chatRevision || !Array.isArray(chat.messages)) return;
+    this.chatRevision=chat.revision;
+    this.onChat(chat.messages);
+  }
+  broadcastChat(extra={}) {
+    return this.transmit({kind:'chat-state',instance:this.record.instance,chat:this.record.chat,...extra});
+  }
+  addChat(seat,rid,type,content) {
+    if (typeof rid!=='string'||!/^[0-9a-f-]{36}$/.test(rid)) throw Error('消息编号无效');
+    if (type==='text') {
+      if (typeof content!=='string'||!content.trim()||content.length>300) throw Error('文字长度应在 1 到 300 字之间');
+      content=content.trim();
+    } else if (type==='image') {
+      if (typeof content!=='string'||content.length>9000||!/^data:image\/(webp|png|jpeg);base64,[A-Za-z0-9+/=]+$/.test(content)) throw Error('表情图片无效');
+    } else throw Error('消息格式无效');
+    const chat=this.record.chat||{revision:0,messages:[]};
+    const receipts=this.record.chatReceipts||[];
+    if (receipts.includes(rid)) return;
+    const message={id:rid,seat,type,content};
+    const next={revision:chat.revision+1,messages:[...chat.messages,message].slice(-12)};
+    this.persist({...this.record,chat:next,chatReceipts:[...receipts,rid].slice(-64)});
+    this.acceptChat(next);
+  }
+  async sendChat(type,content) {
+    if (this.host) {
+      this.addChat(0,crypto.randomUUID(),type,content);
+      await this.broadcastChat();
+      return;
+    }
+    if (this.rev<0 || !this.presence()[0]) throw Error('等待红方上线后即可发送');
+    if (this.chatPending) throw Error('正在发送，请稍候');
+    const pending={kind:'chat-send',rid:crypto.randomUUID(),instance:this.instance,type,content};
+    this.chatPending=pending;
+    try {
+      for(let attempt=0;attempt<5;attempt++) {
+        await this.transmit(pending);
+        for(let tick=0;tick<12&&!pending.done&&!pending.error;tick++)await wait(150);
+        if(pending.done)return;
+        if(pending.error)throw Error(pending.error);
+      }
+      this.hello();throw Error('发送超时，请检查连接后重试');
+    } finally {this.chatPending=null;}
   }
   acceptRadio(radio) {
     if (!radio || !radioStations.has(radio.station) || !Number.isSafeInteger(radio.revision) || radio.revision<=this.radioRevision) return;
@@ -142,7 +190,7 @@ export class Room {
     this.onRadio(radio);
   }
   broadcastRadio(extra={}) {
-    return this.transmit({kind:'radio-state',instance:this.record.instance,radio:this.record.radio,...extra});
+    return this.transmit({kind:'radio-state',instance:this.record.instance,radio:this.record.radio,chat:this.record.chat,...extra});
   }
   setRadio(seat,station,receipt) {
     if (!radioStations.has(station)) throw Error('请选择列表中的电台');
@@ -198,7 +246,7 @@ export class Room {
     this.showHost();
   }
   async receive(channel,wire) {
-    if(wire.length<30||wire.length>96000 || (this.host&&wire.length>2400))return;
+    if(wire.length<30||wire.length>200000 || (this.host&&wire.length>12000))return;
     const raw=new Uint8Array(await crypto.subtle.decrypt({name:'AES-GCM',iv:wire.slice(0,12),additionalData:utf8.encode(channel)},this.cipher,wire.slice(12)));
     let body=raw;
     if(!this.host){
@@ -217,6 +265,15 @@ export class Room {
         if(msg.rev!==this.rev||msg.instance!==this.record.instance)await this.snapshot();
         else await this.transmit({kind:'alive'});
         if(msg.radioRevision!==this.radioRevision)await this.broadcastRadio();
+        if(msg.chatRevision!==this.chatRevision)await this.broadcastChat();
+        return;
+      }
+      if(msg.kind==='chat-send') {
+        try {
+          if(msg.instance!==this.record.instance) throw Error('房间已重新连接，请重试发送');
+          this.addChat(1,msg.rid,msg.type,msg.content);
+          await this.broadcastChat({chatReceipt:msg.rid});
+        } catch(e) {await this.broadcastChat({chatRefused:msg.rid,reason:e.message});}
         return;
       }
       if(msg.kind==='radio-select') {
@@ -236,6 +293,12 @@ export class Room {
       catch(e){await this.snapshot({refused:msg.rid,reason:e.message});return;}
       await this.snapshot();
     }else if(msg.kind==='ready'){this.hello();}
+    else if(msg.kind==='chat-state'){
+      if(msg.instance!==this.instance){this.hello();return;}
+      this.acceptChat(msg.chat);
+      if(this.chatPending?.rid===msg.chatReceipt)this.chatPending.done=true;
+      if(this.chatPending?.rid===msg.chatRefused)this.chatPending.error=msg.reason;
+    }
     else if(msg.kind==='radio-state'){
       if(msg.instance!==this.instance){this.hello();return;}
       this.acceptRadio(msg.radio);
@@ -243,9 +306,10 @@ export class Room {
       if(this.radioPending?.rid===msg.radioRefused)this.radioPending.error=msg.reason;
     }
     else if(msg.kind==='state'){
-      if(this.instance&&this.instance!==msg.instance){this.onState({reset:true});this.rev=-1;this.radioRevision=-1;}
+      if(this.instance&&this.instance!==msg.instance){this.onState({reset:true});this.rev=-1;this.radioRevision=-1;this.chatRevision=-1;}
       this.instance=msg.instance;
       this.acceptRadio(msg.radio);
+      this.acceptChat(msg.chat);
       if(msg.rev>=this.rev){this.rev=msg.rev;this.onState({revision:msg.rev,data:msg.data});}
       if(this.pending&&this.pending.rid===msg.receipt)this.pending.done=true;
       if(this.pending&&msg.refused===this.pending.rid)this.pending.error=msg.reason;

@@ -101,7 +101,17 @@
 @media(max-width:430px){.room-seat{padding:10px 8px}.room-map-area{gap:12px}.room-controls button{padding:10px 12px}}
 
 .board-map[data-art="lava-art"]{background-image:url("./board-assets/lava-board.webp")}
-.reveal-cards{display:flex;flex-wrap:wrap;gap:10px}.reveal-cards img{width:70px}.robot-reveal{animation:reveal-pop .5s ease both}@keyframes reveal-pop{from{transform:scale(.4) rotateY(90deg);opacity:0}to{transform:scale(1) rotateY(0);opacity:1}}</style></head><body><div class="wrap"><header><div><h1>⚔️ <span>TOY</span> BATTLE</h1><small>公网双人对战</small></div><div class="radio-tools"><button type="button" id="radio-toggle" aria-expanded="false" aria-controls="radio-panel">♫ 电台</button><span class="pill" id="connection">正在连接…</span></div><section id="radio-panel" class="radio-panel" aria-label="房间电台" hidden>
+.reveal-cards{display:flex;flex-wrap:wrap;gap:10px}.reveal-cards img{width:70px}.robot-reveal{animation:reveal-pop .5s ease both}@keyframes reveal-pop{from{transform:scale(.4) rotateY(90deg);opacity:0}to{transform:scale(1) rotateY(0);opacity:1}}
+.chat-toggle{position:fixed;z-index:150;right:16px;bottom:16px;background:#e5ad49;color:#302317;box-shadow:0 3px 14px #0008;padding:10px 14px}
+.chat-panel{position:fixed;z-index:160;right:16px;bottom:70px;width:min(330px,calc(100vw - 24px));max-height:min(70vh,560px);display:flex;flex-direction:column;padding:12px;background:#342a20;color:#fff2d7;border:2px solid #ad8758;border-radius:14px;box-shadow:0 6px 24px #000a}
+.chat-panel[hidden]{display:none}.chat-header{display:flex;justify-content:space-between;align-items:center;padding:0 0 8px}.chat-header button{padding:2px 8px;background:transparent;color:#ffe4b8;font-size:20px}
+.chat-list{height:220px;min-height:70px;overflow-y:auto;background:#241e18;border-radius:8px;padding:8px}.chat-message{display:flex;align-items:flex-start;gap:6px;margin-bottom:9px;overflow-wrap:anywhere}.chat-message small{flex:none;color:#d3ad78}.chat-message span{white-space:pre-wrap}.chat-message img{width:auto;height:auto;max-width:96px;max-height:96px;border-radius:6px}
+.chat-stickers{display:flex;gap:4px;overflow-x:auto;min-height:47px;align-items:center;padding:5px 0}.chat-stickers button{padding:4px;background:#524331;font-size:20px}.sticker-item{position:relative;flex:none}.sticker-item img{width:35px;height:35px;object-fit:contain}.sticker-item .sticker-remove{position:absolute;top:-4px;right:-5px;border-radius:50%;font-size:11px;padding:0 3px;background:#a24c3d}
+.chat-upload{font-size:12px;color:#ffe0a5;cursor:pointer;margin:4px 0}.chat-form{display:flex;gap:6px}.chat-form input{width:100%;min-width:0;background:#f6ead8;color:#302317;border:0;border-radius:6px;padding:8px}.chat-form button{flex:none;white-space:nowrap;padding:8px 12px;background:#e5ad49;color:#302317}#chat-status{font-size:12px;color:#f5cf92;min-height:14px}
+.board-event{position:absolute;z-index:45;pointer-events:none;transform:translate(-50%,-50%);display:flex;align-items:center;justify-content:center;white-space:nowrap;font-weight:900;text-shadow:0 2px 4px #000;animation:board-event 1.8s ease-out both}.board-event span{background:#39271de8;border:2px solid #ffd36a;border-radius:999px;padding:6px 10px;color:#ffea8b}.board-event img{position:absolute;width:70px;opacity:.85;animation:piece-remove 1.5s ease-out both}.remove-effect span{position:relative;background:#692d2bea;border-color:#ffa493}.cover-effect span{background:#734c22ea}.score-effect span{background:#67480bea;color:#fff2a9;box-shadow:0 0 25px #ffd24d;font-size:16px}
+@keyframes board-event{0%{opacity:0;transform:translate(-50%,-50%) scale(.45)}25%{opacity:1;transform:translate(-50%,-65%) scale(1.15)}75%{opacity:1}100%{opacity:0;transform:translate(-50%,-120%) scale(.95)}}@keyframes piece-remove{0%{transform:scale(1)}100%{transform:translateY(-35px) rotate(18deg) scale(.5);opacity:0}}
+@media(prefers-reduced-motion:reduce){.board-event,.board-event img{animation-duration:.01ms}}
+</style></head><body><div class="wrap"><header><div><h1>⚔️ <span>TOY</span> BATTLE</h1><small>公网双人对战</small></div><div class="radio-tools"><button type="button" id="radio-toggle" aria-expanded="false" aria-controls="radio-panel">♫ 电台</button><span class="pill" id="connection">正在连接…</span></div><section id="radio-panel" class="radio-panel" aria-label="房间电台" hidden>
 <label class="radio-picker" for="radio-station">房间电台
 <select id="radio-station">
 <option value="cnclassic">华语金曲 500 首</option><option value="cnpop">陕西经典流行金曲</option><option value="chillsynth" selected>Chillsynth · 轻松电子</option>
@@ -115,13 +125,20 @@
 <p id="radio-status" role="status">每台设备点击收听后播放，音量与暂停仅影响本机。</p>
 <div class="radio-actions"><a href="https://nightride.fm/" rel="noopener noreferrer" target="_blank">Nightride FM 直播 ↗</a>
 <button type="button" id="radio-fold">收起</button></div>
-</section></header><div id="app"></div><dialog id="robot-reveal" class="restart-dialog robot-reveal"><h2>机器人移除的牌</h2><div id="robot-card"></div><button onclick="document.querySelector('#robot-reveal').close()">关闭</button></dialog><dialog id="retreat-dialog" class="restart-dialog retreat-dialog" aria-labelledby="retreat-title"><h2 id="retreat-title">选择要回收的棋子</h2><p>可选择叠放中的己方棋子。</p><div id="retreat-list" class="retreat-list"></div><div class="restart-dialog-actions"><button type="button" onclick="document.querySelector('#retreat-dialog').close()">取消</button></div></dialog><dialog id="restart-dialog" class="restart-dialog" aria-labelledby="restart-title"><h2 id="restart-title">结束这局并返回房间？</h2><p>当前对局将结束，双方可在房间重新选图、准备。</p><div class="restart-dialog-actions"><button type="button" onclick="document.querySelector('#restart-dialog').close()">取消</button><button type="button" class="primary" onclick="confirmRestart()">返回房间</button></div></dialog><dialog id="map-confirm" class="restart-dialog"><h2>切换棋盘？</h2><p id="map-confirm-text"></p><div class="restart-dialog-actions"><button onclick="document.querySelector('#map-confirm').close()">取消</button><button class="primary" onclick="confirmMap()">确认切换</button></div></dialog><dialog id="map-dialog" class="map-browser"><h2>选择棋盘</h2><p>房主可更换地图并返回准备房间。</p><div class="map-grid" id="map-grid"></div><p><button type="button" onclick="document.querySelector('#map-dialog').close()">关闭</button></p></dialog><dialog id="invite-dialog" class="restart-dialog"><h2>邀请朋友</h2><p>把蓝方链接发给朋友。红方请在同一浏览器保留页面，刷新可以恢复本局。</p><label>红方<input id="invite-red" readonly style="width:100%"></label><label>蓝方<input id="invite-blue" readonly style="width:100%"></label><div class="restart-dialog-actions"><button onclick="document.querySelector('#invite-dialog').close()">关闭</button></div></dialog><div id="stack-preview" class="stack-preview" role="tooltip" hidden onmouseenter="keepStackPreview()" onmouseleave="hideStackSoon()"></div><footer>非官方个人学习模拟版 · 兵种图片来源于 Ludex / Toy Battle，版权属于 Repos Production。棋盘落点依据图片及参考资料校准，仍需实战核验。</footer></div><script>
+</section></header><button type="button" id="chat-toggle" class="chat-toggle" aria-expanded="false" aria-controls="chat-panel">💬 聊天</button>
+<section id="chat-panel" class="chat-panel" aria-label="房间聊天" hidden>
+<header class="chat-header"><strong>房间聊天</strong><button type="button" id="chat-close" aria-label="关闭聊天">×</button></header>
+<div id="chat-list" class="chat-list" aria-live="polite"></div>
+<div id="chat-stickers" class="chat-stickers" aria-label="表情"></div>
+<label class="chat-upload">＋ 添加图片表情<input id="chat-upload" type="file" accept="image/*" hidden></label>
+<form id="chat-form" class="chat-form"><input id="chat-input" maxlength="300" placeholder="输入消息" aria-label="消息"><button type="submit">发送</button></form>
+<div id="chat-status" role="status"></div></section><div id="app"></div><dialog id="robot-reveal" class="restart-dialog robot-reveal"><h2>机器人移除的牌</h2><div id="robot-card"></div><button onclick="document.querySelector('#robot-reveal').close()">关闭</button></dialog><dialog id="retreat-dialog" class="restart-dialog retreat-dialog" aria-labelledby="retreat-title"><h2 id="retreat-title">选择要回收的棋子</h2><p>可选择叠放中的己方棋子。</p><div id="retreat-list" class="retreat-list"></div><div class="restart-dialog-actions"><button type="button" onclick="document.querySelector('#retreat-dialog').close()">取消</button></div></dialog><dialog id="restart-dialog" class="restart-dialog" aria-labelledby="restart-title"><h2 id="restart-title">结束这局并返回房间？</h2><p>当前对局将结束，双方可在房间重新选图、准备。</p><div class="restart-dialog-actions"><button type="button" onclick="document.querySelector('#restart-dialog').close()">取消</button><button type="button" class="primary" onclick="confirmRestart()">返回房间</button></div></dialog><dialog id="map-confirm" class="restart-dialog"><h2>切换棋盘？</h2><p id="map-confirm-text"></p><div class="restart-dialog-actions"><button onclick="document.querySelector('#map-confirm').close()">取消</button><button class="primary" onclick="confirmMap()">确认切换</button></div></dialog><dialog id="map-dialog" class="map-browser"><h2>选择棋盘</h2><p>房主可更换地图并返回准备房间。</p><div class="map-grid" id="map-grid"></div><p><button type="button" onclick="document.querySelector('#map-dialog').close()">关闭</button></p></dialog><dialog id="invite-dialog" class="restart-dialog"><h2>邀请朋友</h2><p>把蓝方链接发给朋友。红方请在同一浏览器保留页面，刷新可以恢复本局。</p><label>红方<input id="invite-red" readonly style="width:100%"></label><label>蓝方<input id="invite-blue" readonly style="width:100%"></label><div class="restart-dialog-actions"><button onclick="document.querySelector('#invite-dialog').close()">关闭</button></div></dialog><div id="stack-preview" class="stack-preview" role="tooltip" hidden onmouseenter="keepStackPreview()" onmouseleave="hideStackSoon()"></div><footer>非官方个人学习模拟版 · 兵种图片来源于 Ludex / Toy Battle，版权属于 Repos Production。棋盘落点依据图片及参考资料校准，仍需实战核验。</footer></div><script>
 const ART={"troop-blue-capn":"./board-assets/e84e522578f0bfa9.webp","troop-blue-hook":"./board-assets/71e8258a61b09b90.webp","troop-blue-jumbo":"./board-assets/4c281d818c439149.webp","troop-blue-kwak":"./board-assets/e7f3571ca24b7ffd.webp","troop-blue-roxy":"./board-assets/4fa31ea3c2ba3700.webp","troop-blue-skully":"./board-assets/5713bccc449a27fc.webp","troop-blue-star":"./board-assets/91606d3e5d8a5647.webp","troop-blue-xb42":"./board-assets/d53cdfcb49e09226.webp","troop-red-capn":"./board-assets/5c7bb6633f23a426.webp","troop-red-hook":"./board-assets/c1b8168286dfa137.webp","troop-red-jumbo":"./board-assets/ce805f963cec9917.webp","troop-red-kwak":"./board-assets/e604bf1dc65e373b.webp","troop-red-roxy":"./board-assets/42305579ec731262.webp","troop-red-skully":"./board-assets/2a3250f8a5814651.webp","troop-red-star":"./board-assets/6bef0784615ee111.webp","troop-red-xb42":"./board-assets/48b48a73838e2dd0.webp"};function piece(type,owner){const key=`troop-${owner===0?"red":"blue"}-${type.toLowerCase()}`;return ART[key]||"";}
 let ws,state=null,selected=null,roomSaved=null,seatSaved=null,pendingCapnExtra=null;const fixedSeat=null;const app=document.querySelector('#app'),conn=document.querySelector('#connection');const labels={KWAK:'鸭子',SKULLY:'骷髅',CAPN:'士兵',JUMBO:'巨人',HOOK:'海盗',XB42:'机器人',STAR:'独角兽',ROXY:'恐龙'};const descriptions={KWAK:'万能战力：可覆盖任何敌军，也可被任何敌军覆盖',SKULLY:'部署后从储备抽 2 枚（最多 8 枚手牌）',CAPN:'部署后可额外部署 1 枚兵种',JUMBO:'可移除一个相邻的可见敌军',HOOK:'在普通基地可无视总部连接要求',XB42:'选择对手牌架上一枚背面牌并弃掉',STAR:'部署后抽 1 枚兵种',ROXY:'无额外能力，战力 7'};
 function processState(result){if(result.revision<revision)return;if(result.revision===revision&&state)return;revision=result.revision;const previous=state;state=result.data;if(previous?.gameId&&state.gameId!==previous.gameId){document.querySelectorAll('dialog[open]').forEach(d=>d.close());pendingCapnExtra=null;effectQueue.length=0;clearTimeout(effectTimer);effectTimer=null;activeSkillEffect=null;document.querySelectorAll('.skill-toast').forEach(e=>e.remove())}roomSaved=state.room;seatSaved=state.you;selected=null;render();if(state.stage!=='lobby' && previous?.stage!=='lobby')queueSkillEffects(previous,state);if(pendingCapnExtra&&state.room===pendingCapnExtra.room&&state.board[pendingCapnExtra.node]?.some(c=>c.id===pendingCapnExtra.id)&&!state.hands.some(c=>c.id===pendingCapnExtra.id)){pendingCapnExtra=null;if(state.turn===state.you&&state.phase?.kind==='capn')queueAutoSkip(state.gameId,revision)}}
 let revision=-1, requestPending=false, relay=null;
 ws={readyState:1};
-const loadRelay=()=>import('./room.mjs?v=lava-calibrated-1');
+const loadRelay=()=>import('./room.mjs?v=chat-effects-1');
 function receiveView(result){if(result.reset){revision=-1;selected=null;return}processState(result)}
 function showInvite(){
  if(!relay?.invites)return;
@@ -130,7 +147,7 @@ function showInvite(){
 }
 async function openRoom(fragment){
  const {Room}=await loadRelay();
- relay=new Room(receiveView,(message,seats)=>{conn.textContent=message;updateRoomPresence(seats)},syncRadio);
+ relay=new Room(receiveView,(message,seats)=>{conn.textContent=message;updateRoomPresence(seats)},syncRadio,receiveChat);
  try{await relay.open(fragment)}catch(e){relay.close();relay=null;throw e}
  if(!relay.host && !state){state={stage:'lobby',you:1,room:relay.id.slice(0,6).toUpperCase(),mapId:null,ticket:null,ready:[false,false],sequence:[0,0]};render()}
 }
@@ -168,6 +185,7 @@ function showRobotReveal(before,after){
 }
 function queueSkillEffects(before,after){
  showRobotReveal(before,after);
+ showBoardChanges(before,after);
  const lines=newLogLines(before,after),added=[];
  for(const line of lines){
   const m=line.match(/^(红|蓝)方部署 (KWAK|SKULLY|CAPN|JUMBO|HOOK|XB42|STAR|ROXY) → (\w+)$/);
@@ -440,6 +458,150 @@ document.getElementById('radio-fold').addEventListener('click', () => showRadio(
 radioPanel.addEventListener('keydown', event => {
   if (event.key === 'Escape') showRadio(false);
 });
+
+async function sendRoomChat(type,content){if(!relay)throw Error('进入房间后即可聊天');await relay.sendChat(type,content)}
+const chatPanel = document.getElementById('chat-panel');
+const chatToggle = document.getElementById('chat-toggle');
+const chatList = document.getElementById('chat-list');
+const chatInput = document.getElementById('chat-input');
+const chatStatus = document.getElementById('chat-status');
+const chatStickers = document.getElementById('chat-stickers');
+let chatMessages = [];
+let chatSending = false;
+let stickerImages = [];
+try {
+  const saved = JSON.parse(localStorage.getItem('toy-battle/stickers') || '[]');
+  if (Array.isArray(saved)) stickerImages = saved.filter(validChatImage).slice(-10);
+} catch {}
+function validChatImage(src) {
+  return typeof src === 'string' && src.length <= 9000 && /^data:image\/(?:webp|png|jpeg);base64,[A-Za-z0-9+/=]+$/.test(src);
+}
+function drawChat() {
+  chatList.replaceChildren();
+  for (const message of chatMessages) {
+    const row = document.createElement('div');
+    row.className = 'chat-message ' + (message.seat === state?.you ? 'mine' : 'theirs');
+    const name = document.createElement('small');
+    name.textContent = message.seat === 0 ? '红方' : '蓝方';
+    row.appendChild(name);
+    if (message.type === 'image' && validChatImage(message.content)) {
+      const image = document.createElement('img');
+      image.src = message.content;
+      image.alt = '图片表情';
+      row.appendChild(image);
+    } else if (message.type === 'text') {
+      const content = document.createElement('span');
+      content.textContent = message.content;
+      row.appendChild(content);
+    }
+    chatList.appendChild(row);
+  }
+  chatList.scrollTop = chatList.scrollHeight;
+}
+function receiveChat(messages) {
+  if (!Array.isArray(messages)) return;
+  const oldIds = new Set(chatMessages.map(message => message.id));
+  const newFromPeer = messages.some(message => !oldIds.has(message.id) && message.seat !== state?.you);
+  chatMessages = messages.slice(-12);
+  drawChat();
+  if (chatPanel.hidden && newFromPeer) chatToggle.textContent = '💬 聊天 •';
+}
+function drawStickers() {
+  chatStickers.replaceChildren();
+  for (const emoji of ['😀','😂','👍','🎉','😮','🤔','❤️','🔥']) {
+    const button = document.createElement('button');
+    button.type = 'button';button.textContent = emoji;button.title = '发送 ' + emoji;
+    button.onclick = () => sendChat('text', emoji);
+    chatStickers.appendChild(button);
+  }
+  stickerImages.forEach((src, index) => {
+    const wrap = document.createElement('span');wrap.className = 'sticker-item';
+    const button = document.createElement('button');button.type = 'button';button.title = '发送自定义表情';
+    const image = document.createElement('img');image.src = src;image.alt = '自定义表情';button.appendChild(image);
+    button.onclick = () => sendChat('image', src);
+    const remove = document.createElement('button');remove.type = 'button';remove.className = 'sticker-remove';remove.textContent = '×';remove.title = '删除此表情';
+    remove.onclick = () => {stickerImages.splice(index,1);saveStickers();drawStickers();};
+    wrap.append(button,remove);chatStickers.appendChild(wrap);
+  });
+}
+function saveStickers() {
+  try {localStorage.setItem('toy-battle/stickers', JSON.stringify(stickerImages));}
+  catch {chatStatus.textContent = '设备存储空间不足，表情仅在本次页面中可用。';}
+}
+async function sendChat(type, content) {
+  if (chatSending) return;
+  if (!state || !content || (type === 'image' && !validChatImage(content))) {chatStatus.textContent = '进入房间后即可聊天。';return;}
+  chatSending = true;chatStatus.textContent = '发送中…';
+  try {
+    await sendRoomChat(type,content);
+    if (type === 'text' && chatInput.value.trim() === content) chatInput.value = '';
+    chatStatus.textContent = '';
+  } catch (error) {chatStatus.textContent = error.message;}
+  finally {chatSending = false;}
+}
+document.getElementById('chat-form').addEventListener('submit', event => {
+  event.preventDefault();sendChat('text',chatInput.value.trim());
+});
+chatToggle.addEventListener('click', () => {
+  chatPanel.hidden = !chatPanel.hidden;
+  chatToggle.setAttribute('aria-expanded',String(!chatPanel.hidden));
+  chatToggle.textContent = '💬 聊天';
+  if (!chatPanel.hidden) drawChat();
+});
+document.getElementById('chat-close').addEventListener('click', () => {
+  chatPanel.hidden = true;chatToggle.setAttribute('aria-expanded','false');
+});
+document.getElementById('chat-upload').addEventListener('change', async event => {
+  const file = event.target.files[0];event.target.value = '';
+  if (!file) return;
+  if (!file.type.startsWith('image/') || file.size > 10*1024*1024) {chatStatus.textContent = '请选择 10 MB 以内的图片。';return;}
+  const url = URL.createObjectURL(file);
+  try {
+    const image = new Image();image.src = url;
+    await image.decode();
+    const canvas = document.createElement('canvas');
+    const scale = Math.min(1, 96 / Math.max(image.naturalWidth,image.naturalHeight));
+    canvas.width = Math.max(1,Math.round(image.naturalWidth*scale));
+    canvas.height = Math.max(1,Math.round(image.naturalHeight*scale));
+    canvas.getContext('2d').drawImage(image,0,0,canvas.width,canvas.height);
+    let src = canvas.toDataURL('image/webp',.65);
+    if (!validChatImage(src)) src = canvas.toDataURL('image/jpeg',.55);
+    if (!validChatImage(src)) throw Error('图片压缩失败，请换一张图片');
+    stickerImages.push(src);stickerImages=stickerImages.slice(-10);saveStickers();drawStickers();
+    chatStatus.textContent = '表情已添加，点击即可发送。';
+  } catch (error) {chatStatus.textContent = error.message || '无法读取图片，请换一张图片。';}
+  finally {URL.revokeObjectURL(url);}
+});
+drawStickers();
+
+function showBoardChanges(before,after) {
+  if (!before?.board || before.gameId !== after.gameId) return;
+  const board = document.querySelector('.board');
+  if (!board) return;
+  const effect = (position, className, label, image) => {
+    const [left,top] = viewPos(position[0],position[1],after.you);
+    const element = document.createElement('div');element.className = 'board-event ' + className;
+    element.style.left=left+'%';element.style.top=top+'%';
+    if (image) {const img=document.createElement('img');img.src=piece(image.type,image.owner);img.alt='';element.appendChild(img);}
+    const text=document.createElement('span');text.textContent=label;element.appendChild(text);
+    board.appendChild(element);setTimeout(()=>element.remove(),1900);
+  };
+  for (const [node, stack] of Object.entries(after.board)) {
+    const previous=before.board[node] || [];
+    const oldIds=new Set(previous.map(card=>card.id));
+    const newIds=new Set(stack.map(card=>card.id));
+    const removed=previous.filter(card=>!newIds.has(card.id));
+    const top=stack.at(-1);
+    if (top && !oldIds.has(top.id) && previous.length) effect(after.nodes[node],'cover-effect','盖压');
+    for (const card of removed) effect(after.nodes[node],'remove-effect','移除',card);
+  }
+  for (const region of after.regionDefs) {
+    if (before.regions[region.id] === undefined && after.regions[region.id] !== undefined) {
+      const seat=after.regions[region.id];
+      effect(region.pos,'score-effect',(seat===0?'红方':'蓝方')+' +'+region.medals+' ★');
+    }
+  }
+}
 
 let stackHideTimer;
 function hideStackNow(){clearTimeout(stackHideTimer);document.querySelector('#stack-preview').hidden=true}
