@@ -121,7 +121,7 @@ let ws,state=null,selected=null,roomSaved=null,seatSaved=null,pendingCapnExtra=n
 function processState(result){if(result.revision<revision)return;if(result.revision===revision&&state)return;revision=result.revision;const previous=state;state=result.data;if(previous?.gameId&&state.gameId!==previous.gameId){document.querySelectorAll('dialog[open]').forEach(d=>d.close());pendingCapnExtra=null;effectQueue.length=0;clearTimeout(effectTimer);effectTimer=null;activeSkillEffect=null;document.querySelectorAll('.skill-toast').forEach(e=>e.remove())}roomSaved=state.room;seatSaved=state.you;selected=null;render();if(state.stage!=='lobby' && previous?.stage!=='lobby')queueSkillEffects(previous,state);if(pendingCapnExtra&&state.room===pendingCapnExtra.room&&state.board[pendingCapnExtra.node]?.some(c=>c.id===pendingCapnExtra.id)&&!state.hands.some(c=>c.id===pendingCapnExtra.id)){pendingCapnExtra=null;if(state.turn===state.you&&state.phase?.kind==='capn')queueAutoSkip(state.gameId,revision)}}
 let revision=-1, requestPending=false, relay=null;
 ws={readyState:1};
-const loadRelay=()=>import('./room.mjs?v=chest-radio-1');
+const loadRelay=()=>import('./room.mjs?v=chest-radio-2');
 function receiveView(result){if(result.reset){revision=-1;selected=null;return}processState(result)}
 function showInvite(){
  if(!relay?.invites)return;
@@ -161,7 +161,7 @@ function newLogLines(before,after){
 }
 function showRobotReveal(before,after){
  const card=after.robotReveal;
- if(!before||!card||before.robotReveal?.id===card.id)return;
+ if(!before||!card||before.robotReveal?.eventId===card.eventId)return;
  const dialog=document.querySelector('#robot-reveal');
  document.querySelector('#robot-card').innerHTML=`<img style="width:120px" src="${piece(card.type,card.owner)}" alt="${labels[card.type]}"><p>${card.owner===0?'红':'蓝'}方 · ${labels[card.type]}</p>`;
  if(!dialog.open)dialog.showModal();

@@ -1,4 +1,4 @@
-import { start, apply, state, MAPS } from './engine.mjs?v=chest-radio-1';
+import { start, apply, state, MAPS } from './engine.mjs?v=chest-radio-2';
 
 const BROKERS = ['wss://broker.emqx.io:8084/mqtt', 'wss://broker.hivemq.com:8884/mqtt'];
 const utf8 = new TextEncoder();
