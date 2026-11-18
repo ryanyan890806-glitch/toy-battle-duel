@@ -1,4 +1,4 @@
-import { start, apply, state, MAPS } from './engine.mjs?v=chest-radio-2';
+import { start, apply, state, MAPS } from './engine.mjs?v=lava-calibrated-1';
 
 const BROKERS = ['wss://broker.emqx.io:8084/mqtt', 'wss://broker.hivemq.com:8884/mqtt'];
 const utf8 = new TextEncoder();
@@ -61,6 +61,10 @@ export class Room {
         record.rev++;
       } else if (saved && record.lobby) {
         record.lobby=newLobby(record.lobby.mapId);
+        record.rev++;
+      }
+      if (record.game?.map?.id==='lava-art' && JSON.stringify(record.game.map)!==JSON.stringify(MAPS['lava-art'])) {
+        record.game.map=MAPS['lava-art'];
         record.rev++;
       }
       if (!record.radio) record.radio={station:'chillsynth',revision:0,changedBy:null};
