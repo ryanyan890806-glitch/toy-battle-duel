@@ -1,4 +1,4 @@
-import { start, apply, state, MAPS } from './engine.mjs';
+import { start, apply, state, MAPS } from './engine.mjs?v=chest-radio-1';
 
 const BROKERS = ['wss://broker.emqx.io:8084/mqtt', 'wss://broker.hivemq.com:8884/mqtt'];
 const utf8 = new TextEncoder();
@@ -12,7 +12,7 @@ const wait = ms => new Promise(resolve=>setTimeout(resolve,ms));
 const heartbeatMs = 3000;
 const peerTimeoutMs = 13000;
 const newLobby = mapId => ({mapId, ticket:crypto.randomUUID(), ready:[false,false], sequence:[0,0]});
-const radioStations = new Set(['chillsynth','nightride','spacesynth','darksynth']);
+const radioStations = new Set(['chillsynth','nightride','spacesynth','darksynth','cnclassic','cnpop']);
 
 export async function makeInvites() {
   const pair = await crypto.subtle.generateKey(ec,true,['sign','verify']);
