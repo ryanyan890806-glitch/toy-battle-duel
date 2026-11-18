@@ -12,6 +12,7 @@ const wait = ms => new Promise(resolve=>setTimeout(resolve,ms));
 const heartbeatMs = 3000;
 const peerTimeoutMs = 13000;
 const newLobby = mapId => ({mapId, ticket:crypto.randomUUID(), ready:[false,false], sequence:[0,0]});
+const radioStations = new Set(['chillsynth','nightride','spacesynth','darksynth']);
 
 export async function makeInvites() {
   const pair = await crypto.subtle.generateKey(ec,true,['sign','verify']);
@@ -21,9 +22,11 @@ export async function makeInvites() {
 }
 
 export class Room {
-  constructor(onState,onStatus) {
+  constructor(onState,onStatus,onRadio=()=>{}) {
     this.onState=onState;
     this.onStatus=onStatus;
+    this.onRadio=onRadio;
+    this.radioRevision=-1;
     this.clients=[];
     this.rev=-1;
     this.peerSeen=0;
@@ -60,7 +63,9 @@ export class Room {
         record.lobby=newLobby(record.lobby.mapId);
         record.rev++;
       }
+      if (!record.radio) record.radio={station:'chillsynth',revision:0,changedBy:null};
       this.persist(record);
+      this.acceptRadio(record.radio);
       this.showHost();
     }
     this.status();
@@ -123,9 +128,47 @@ export class Room {
     const wire=new Uint8Array(12+enc.byteLength);wire.set(iv);wire.set(new Uint8Array(enc),12);
     for(const client of this.clients)if(client.connected)client.publish(channel,wire,{qos:0,retain:false});
   }
-  hello(){this.transmit({kind:'hello',session:this.session,rev:this.rev,instance:this.instance||null}).catch(()=>{});}
+  hello(){this.transmit({kind:'hello',session:this.session,rev:this.rev,radioRevision:this.radioRevision,instance:this.instance||null}).catch(()=>{});}
   snapshot(extra={}) {
-    return this.transmit({kind:'state',instance:this.record.instance,rev:this.rev,receipt:this.record.receipt,data:this.view(1),...extra});
+    return this.transmit({kind:'state',instance:this.record.instance,rev:this.rev,receipt:this.record.receipt,data:this.view(1),radio:this.record.radio,...extra});
+  }
+  acceptRadio(radio) {
+    if (!radio || !radioStations.has(radio.station) || !Number.isSafeInteger(radio.revision) || radio.revision<=this.radioRevision) return;
+    this.radioRevision=radio.revision;
+    this.onRadio(radio);
+  }
+  broadcastRadio(extra={}) {
+    return this.transmit({kind:'radio-state',instance:this.record.instance,radio:this.record.radio,...extra});
+  }
+  setRadio(seat,station,receipt) {
+    if (!radioStations.has(station)) throw Error('请选择列表中的电台');
+    const receipts=this.record.radioReceipts||[];
+    if (receipt && receipts.includes(receipt)) return;
+    const radio={station,revision:this.record.radio.revision+1,changedBy:seat};
+    this.persist({...this.record,radio,radioReceipts:receipt?[...receipts,receipt].slice(-32):receipts});
+    this.acceptRadio(radio);
+  }
+  async selectRadio(station) {
+    if (!radioStations.has(station)) throw Error('请选择列表中的电台');
+    if (this.host) {
+      this.setRadio(0,station);
+      await this.broadcastRadio();
+      return;
+    }
+    if (this.rev<0 || !this.presence()[0]) throw Error('等待红方上线后即可切台');
+    if (this.radioPending) throw Error('正在同步电台，请稍候');
+    const pending={kind:'radio-select',rid:crypto.randomUUID(),instance:this.instance,station};
+    this.radioPending=pending;
+    try {
+      for(let attempt=0;attempt<4;attempt++) {
+        await this.transmit(pending);
+        for(let tick=0;tick<12&&!pending.done&&!pending.error;tick++)await wait(150);
+        if(pending.done)return;
+        if(pending.error)throw Error(pending.error);
+      }
+      this.hello();
+      throw Error('电台同步超时，请稍后重试');
+    } finally {this.radioPending=null;}
   }
   commit(seat,action,receipt) {
     let {game,lobby}=this.record;
@@ -169,6 +212,16 @@ export class Room {
       if(msg.kind==='hello') {
         if(msg.rev!==this.rev||msg.instance!==this.record.instance)await this.snapshot();
         else await this.transmit({kind:'alive'});
+        if(msg.radioRevision!==this.radioRevision)await this.broadcastRadio();
+        return;
+      }
+      if(msg.kind==='radio-select') {
+        if(typeof msg.rid!=='string'||!/^[0-9a-f-]{36}$/.test(msg.rid))return;
+        try {
+          if(msg.instance!==this.record.instance)throw Error('房间已重新连接，请重试切台');
+          this.setRadio(1,msg.station,msg.rid);
+          await this.broadcastRadio({radioReceipt:msg.rid});
+        } catch(e) {await this.broadcastRadio({radioRefused:msg.rid,reason:e.message});}
         return;
       }
       if(msg.kind!=='move'||typeof msg.rid!=='string'||!/^[0-9a-f-]{36}$/.test(msg.rid))return;
@@ -179,9 +232,16 @@ export class Room {
       catch(e){await this.snapshot({refused:msg.rid,reason:e.message});return;}
       await this.snapshot();
     }else if(msg.kind==='ready'){this.hello();}
+    else if(msg.kind==='radio-state'){
+      if(msg.instance!==this.instance){this.hello();return;}
+      this.acceptRadio(msg.radio);
+      if(this.radioPending?.rid===msg.radioReceipt)this.radioPending.done=true;
+      if(this.radioPending?.rid===msg.radioRefused)this.radioPending.error=msg.reason;
+    }
     else if(msg.kind==='state'){
-      if(this.instance&&this.instance!==msg.instance){this.onState({reset:true});this.rev=-1;}
+      if(this.instance&&this.instance!==msg.instance){this.onState({reset:true});this.rev=-1;this.radioRevision=-1;}
       this.instance=msg.instance;
+      this.acceptRadio(msg.radio);
       if(msg.rev>=this.rev){this.rev=msg.rev;this.onState({revision:msg.rev,data:msg.data});}
       if(this.pending&&this.pending.rid===msg.receipt)this.pending.done=true;
       if(this.pending&&msg.refused===this.pending.rid)this.pending.error=msg.reason;
